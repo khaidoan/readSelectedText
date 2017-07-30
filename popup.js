@@ -25,8 +25,30 @@ var getFirstBrowserLanguage = function () {
     return null;
 };
 
-var msg = new SpeechSynthesisUtterance();
 var voices;
+var selectedVoice = '';
+var language;
+var fragments;
+
+function readFragment(fragmentIndex) {
+  window.speechSynthesis.cancel(); // Revive the speech synthensis engine when it crash
+  var msg = new SpeechSynthesisUtterance();
+  msg.lang = language;
+  msg.voice = selectedVoice;
+  msg.volume = 1;
+
+  msg.text = fragments[fragmentIndex];
+  msg.onend = function() {
+    if (fragmentIndex + 1 < fragments.length) {
+      setTimeout(function() {
+        readFragment(fragmentIndex + 1)
+      },300);
+    } else {
+      fragments = [];
+    }
+  };
+  window.speechSynthesis.speak(msg);
+}
 
 function readSelectedText() {
   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
@@ -35,25 +57,20 @@ function readSelectedText() {
     var currentVoice = selectedOption.value;
     localStorage.setItem( 'readSelectedText_language', currentVoice );
 
-    var language = getFirstBrowserLanguage();
+    language = getFirstBrowserLanguage();
+    voices.filter(function(voice) {
+      if (voice.name == currentVoice) {
+        selectedVoice = voice;
+      }
+    });
+    if (! selectedVoice) {
+      selectedVoice = voices[0];
+    }
 
     var activeTab = tabs[0];
     chrome.tabs.sendMessage(activeTab.id, {"message": "getSelectedText"}, function(response) {
-      var selectedVoice = '';
-      voices.filter(function(voice) {
-        if (voice.name == currentVoice) {
-          selectedVoice = voice;
-        }
-      });
-      if (! selectedVoice) {
-        selectedVoice = voices[0];
-      }
-
-      msg.lang = language;
-      msg.voice = selectedVoice;
-      msg.volume = 1;
-      msg.text = response.selectedText;
-      window.speechSynthesis.speak(msg);
+      fragments = response.selectedText.split(/[:.]\s+/);
+      readFragment(0);
     });
   });
 }
