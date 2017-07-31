@@ -38,6 +38,7 @@ function readFragment(fragmentIndex) {
   msg.volume = 1;
 
   msg.text = fragments[fragmentIndex];
+  console.log("Reading:" + fragments[fragmentIndex]);
   msg.onend = function() {
     if (fragmentIndex + 1 < fragments.length) {
       setTimeout(function() {
@@ -113,6 +114,7 @@ function updateVoices() {
       voiceHtml = voiceHtml + '>' + voice.name + '</option>';
     });
     document.getElementById('voice').innerHTML = voiceHtml;
+    readSelectedText();
   }).catch(function(){
     document.getElementById('mainBody').innerHTML = 'Your browser does not support text to speech.';
   })
